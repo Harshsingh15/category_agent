@@ -2,13 +2,13 @@
 
 This project implements a **backend-only AI-powered transaction categorization service** using **Django REST Framework** and a **local Large Language Model (LLM)** via **Ollama**.
 
-The system accepts transaction data and company context, then uses an LLM-powered agent to determine the most appropriate accounting category.
+The service receives a transaction and company context, then uses an AI agent to classify the transaction into the most appropriate accounting category.
 
 ---
 
-# Architecture Overview
+# Architecture
 
-The system follows a modular agent-based architecture:
+The system follows a **modular agent-based architecture**.
 
 ```
 Client Request
@@ -25,36 +25,36 @@ Response Parser
       ↓
 Structured JSON Response
 ```
-Architecture follows an agent-based pattern with a pluggable LLM client.
+
 ### Components
 
 **API Layer**
 
 * Handles HTTP requests
 * Validates input
-* Calls the categorization agent
+* Invokes the categorization agent
 
 **Categorization Agent**
 
-* Orchestrates the workflow
+* Orchestrates the classification workflow
 * Builds prompts
-* Calls the LLM client
-* Parses model responses
+* Invokes the LLM
+* Parses responses
 
 **Prompt Builder**
 
-* Constructs contextual prompts for the LLM
-* Includes company industry and chart of accounts
+* Constructs structured prompts for the LLM
+* Includes company context and chart of accounts
 
 **LLM Client**
 
-* Interface for interacting with the LLM
+* Abstract interface for interacting with LLM providers
 * Current implementation uses **Ollama**
 
 **Response Parser**
 
-* Extracts and validates structured JSON from LLM output
-* Provides fallback for malformed responses
+* Extracts structured JSON from model responses
+* Handles malformed responses safely
 
 ---
 
@@ -62,31 +62,13 @@ Architecture follows an agent-based pattern with a pluggable LLM client.
 
 * Django REST API
 * AI-powered transaction categorization
-* Modular agent-based architecture
-* Prompt engineering with contextual inputs
+* Agent-based architecture
+* Prompt engineering
 * LLM abstraction layer
-* Local model support via Ollama
-* Structured JSON outputs
-* Robust response parsing
-
----
-
-# LLM Model
-
-This implementation uses a **local LLM via Ollama**.
-
-Current model used:
-
-```
-gemma:2b
-```
-
-Advantages:
-
-* Runs locally
-* No API keys required
-* Free to use
-* Easily swappable with other models
+* Local model execution via Ollama
+* Structured JSON responses
+* Input validation
+* Health check endpoint
 
 ---
 
@@ -96,6 +78,7 @@ Advantages:
 trans_agent/
 │
 ├── api/
+│   ├── serializers.py
 │   ├── views.py
 │   ├── urls.py
 │
@@ -120,7 +103,7 @@ trans_agent/
 
 # Setup Instructions
 
-## 1. Clone Repository
+## 1. Clone the Repository
 
 ```
 git clone https://github.com/Harshsingh15/category_agent.git
@@ -162,9 +145,9 @@ ollama --version
 
 ---
 
-# Download Model
+# Download the Model
 
-Pull the Gemma model:
+Pull the **Gemma model**:
 
 ```
 ollama pull gemma:2b
@@ -172,19 +155,17 @@ ollama pull gemma:2b
 
 ---
 
-# Start Ollama
-
-Run:
+# Start Ollama Server
 
 ```
 ollama serve
 ```
 
-This starts the local LLM server.
+This runs the local LLM server used by the application.
 
 ---
 
-# Run Django Server
+# Run the Django Server
 
 Apply migrations:
 
@@ -198,23 +179,52 @@ Start server:
 python manage.py runserver
 ```
 
-Server runs at:
+Server will run at:
 
 ```
-http://127.0.0.1:8000
+http://127.0.0.1:8000/
 ```
 
 ---
 
-# API Endpoint
+# API Endpoints
 
-## POST `/categorize`
+## Health Check
 
-Categorizes a transaction using the provided company context.
+### Request
+
+```
+GET /health
+```
+
+Example:
+
+```
+curl http://127.0.0.1:8000/health/
+```
+
+### Response
+
+```
+{
+ "status": "ok",
+ "service": "transaction-categorization-agent"
+}
+```
 
 ---
 
-# Example API Request
+# Transaction Categorization
+
+## Endpoint
+
+```
+POST /categorize
+```
+
+---
+
+# Example Request
 
 ```
 curl -X POST http://127.0.0.1:8000/categorize/ \
@@ -241,15 +251,15 @@ curl -X POST http://127.0.0.1:8000/categorize/ \
 
 ```
 {
-  "category": "Software Subscriptions",
-  "confidence": 1,
-  "reasoning": "The description describes a subscription to Adobe Creative Cloud."
+ "category": "Software Subscriptions",
+ "confidence": 1,
+ "reasoning": "The description describes a subscription to Adobe Creative Cloud."
 }
 ```
 
 ---
 
-# Additional Example
+# Another Example
 
 ### Request
 
@@ -276,9 +286,9 @@ curl -X POST http://127.0.0.1:8000/categorize/ \
 
 ```
 {
-  "category": "Travel",
-  "confidence": 0.92,
-  "reasoning": "Uber rides to airports are typically categorized as travel expenses."
+ "category": "Travel",
+ "confidence": 0.92,
+ "reasoning": "Uber rides to airports are typically categorized as travel expenses."
 }
 ```
 
@@ -288,50 +298,40 @@ curl -X POST http://127.0.0.1:8000/categorize/ \
 
 ### Modular Architecture
 
-Each component has a clear responsibility, making the system easy to extend and maintain.
+Each component is separated for clarity and maintainability.
 
-### LLM Abstraction Layer
+### LLM Abstraction
 
-The LLM client is abstracted so the system can easily switch to:
+The system uses an abstract LLM client, allowing easy switching between providers such as:
 
 * OpenAI
 * Anthropic
 * Azure OpenAI
-* Other local models
+* Local models via Ollama
 
 ### Prompt Engineering
 
-The prompt builder includes:
+Prompts include:
 
 * Industry context
 * Chart of accounts
-* Examples for improved classification accuracy.
+* Example transactions
+
+This improves classification accuracy for smaller models.
 
 ### Robust Response Parsing
 
-The parser extracts valid JSON from model responses and handles malformed outputs gracefully.
+The parser extracts valid JSON from LLM responses and provides fallback behavior if parsing fails.
 
 ---
 
 # Future Improvements
 
-* Add unit tests
-* Implement evaluation metrics
-* Add transaction history context
+* Add automated evaluation metrics
 * Support multiple LLM providers
-* Add caching for repeated queries
-
----
-
-# Example Workflow
-
-1. Client sends transaction data
-2. API receives request
-3. Agent constructs prompt
-4. Prompt sent to LLM
-5. LLM generates classification
-6. Parser extracts JSON response
-7. API returns structured result
+* Add transaction history context
+* Implement caching for repeated queries
+* Add unit tests
 
 ---
 
@@ -347,4 +347,4 @@ requests
 
 # Author
 
-AI Transaction Categorization Agent – Backend Assignment Implementation
+Backend AI Transaction Categorization Agent Implementation
