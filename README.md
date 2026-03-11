@@ -25,7 +25,7 @@ Response Parser
       ↓
 Structured JSON Response
 ```
-
+Architecture follows an agent-based pattern with a pluggable LLM client.
 ### Components
 
 **API Layer**
